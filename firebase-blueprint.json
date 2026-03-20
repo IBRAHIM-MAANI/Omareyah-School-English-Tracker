@@ -1,0 +1,174 @@
+{
+  "entities": {
+    "TestResult": {
+      "title": "Test Result",
+      "description": "A student's speaking assessment result.",
+      "type": "object",
+      "properties": {
+        "studentId": {
+          "type": "string",
+          "description": "The unique ID of the student."
+        },
+        "studentEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "The email of the student."
+        },
+        "overallLevel": {
+          "type": "string",
+          "description": "The CEFR level (A1-C2)."
+        },
+        "intonation": {
+          "type": "string",
+          "description": "Feedback on intonation."
+        },
+        "fluency": {
+          "type": "string",
+          "description": "Feedback on fluency."
+        },
+        "accuracy": {
+          "type": "string",
+          "description": "Feedback on accuracy."
+        },
+        "vocabulary": {
+          "type": "string",
+          "description": "Feedback on vocabulary usage."
+        },
+        "strengths": {
+          "type": "string",
+          "description": "Key strengths identified."
+        },
+        "weaknesses": {
+          "type": "string",
+          "description": "Key weaknesses identified."
+        },
+        "improvementPlan": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Actionable steps for improvement."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the assessment was completed."
+        },
+        "toolId": {
+          "type": "string",
+          "description": "The ID of the tool used for assessment."
+        }
+      },
+      "required": ["studentId", "overallLevel", "createdAt"]
+    },
+    "ReadingTest": {
+      "title": "Reading Test",
+      "description": "A student's reading fluency test result.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentEmail": { "type": "string", "format": "email" },
+        "teacherId": { "type": "string" },
+        "passageTitle": { "type": "string" },
+        "passageText": { "type": "string" },
+        "accuracyScore": { "type": "number" },
+        "wpm": { "type": "number" },
+        "missedWords": { "type": "array", "items": { "type": "string" } },
+        "improvementPlan": { "type": "string" },
+        "visibleToStudent": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "teacherId", "accuracyScore", "createdAt"]
+    },
+    "ReadingPassage": {
+      "title": "Reading Passage",
+      "description": "A text passage for reading fluency assessment.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "text": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "text", "createdBy", "createdAt"]
+    },
+    "StudentRecord": {
+      "title": "Student Record",
+      "description": "A student's academic assessment record.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "studentEmail": { "type": "string", "format": "email" },
+        "cefrLevel": { "type": "string" },
+        "scores": { "type": "object" },
+        "strengths": { "type": "string" },
+        "weaknesses": { "type": "string" },
+        "improvementPlan": { "type": "array", "items": { "type": "string" } },
+        "fullReport": { "type": "string" },
+        "toolId": { "type": "string" },
+        "type": { "type": "string" },
+        "audioUrl": { "type": "string", "description": "URL to the recorded audio file." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "cefrLevel", "createdAt"]
+    },
+    "SpeakingTopic": {
+      "title": "Speaking Topic",
+      "description": "A custom topic for speaking assessments.",
+      "type": "object",
+      "properties": {
+        "topic": { "type": "string" },
+        "questions": { "type": "array", "items": { "type": "string" } },
+        "isActive": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["topic", "questions", "createdBy", "createdAt"]
+    },
+    "StudentAssessmentLog": {
+      "title": "Student Assessment Log",
+      "description": "A log of all student assessments.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "overallLevel": { "type": "string" },
+        "strengths": { "type": "string" },
+        "weaknesses": { "type": "string" },
+        "improvementPlan": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "toolId": { "type": "string" },
+        "fullReport": { "type": "string" },
+        "audioUrl": { "type": "string", "description": "URL to the recorded audio file." },
+        "scores": { "type": "object" }
+      },
+      "required": ["studentId", "overallLevel", "createdAt"]
+    }
+  },
+  "firestore": {
+    "test_results/{resultId}": {
+      "schema": "TestResult",
+      "description": "Collection of speaking assessment results."
+    },
+    "reading_tests/{testId}": {
+      "schema": "ReadingTest",
+      "description": "Collection of reading fluency test results."
+    },
+    "reading_passages/{passageId}": {
+      "schema": "ReadingPassage",
+      "description": "Collection of reading passages."
+    },
+    "student_records/{recordId}": {
+      "schema": "StudentRecord",
+      "description": "Collection of academic assessment records."
+    },
+    "speaking_topics/{topicId}": {
+      "schema": "SpeakingTopic",
+      "description": "Collection of custom speaking topics."
+    },
+    "student_assessment_log/{logId}": {
+      "schema": "StudentAssessmentLog",
+      "description": "Collection of student assessment logs."
+    }
+  }
+}

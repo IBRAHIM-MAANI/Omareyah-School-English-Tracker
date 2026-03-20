@@ -1,0 +1,5 @@
+{
+  "name": "CEFR Speaking Examiner",
+  "description": "Professional CEFR-based speaking assessment using Gemini 2.5 Native Audio.",
+  "requestFramePermissions": ["microphone"]
+}

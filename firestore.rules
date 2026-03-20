@@ -1,0 +1,181 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: test_results
+// Document ID: auto-generated
+// Fields:
+//   - studentId: string (required) - The unique ID of the student.
+//   - studentEmail: string (optional, email) - The email of the student.
+//   - overallLevel: string (required) - The CEFR level (A1-C2).
+//   - intonation: string (optional) - Feedback on intonation.
+//   - fluency: string (optional) - Feedback on fluency.
+//   - accuracy: string (optional) - Feedback on accuracy.
+//   - vocabulary: string (optional) - Feedback on vocabulary usage.
+//   - strengths: string (optional) - Key strengths identified.
+//   - weaknesses: string (optional) - Key weaknesses identified.
+//   - improvementPlan: list (optional) - Actionable steps for improvement.
+//   - createdAt: timestamp (required) - When the assessment was completed.
+//   - toolId: string (optional) - The ID of the tool used for assessment.
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "ibrahimmaani337@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isTeacher() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' || isAdmin());
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidTestResult(data) {
+      return data.keys().hasAll(['studentId', 'overallLevel', 'createdAt']) &&
+             data.studentId is string && data.studentId.size() > 0 && data.studentId.size() < 128 &&
+             data.overallLevel is string && data.overallLevel.size() > 0 && data.overallLevel.size() < 10 &&
+             data.createdAt is timestamp &&
+             (!('studentEmail' in data) || isValidEmail(data.studentEmail)) &&
+             (!('intonation' in data) || (data.intonation is string && data.intonation.size() < 5000)) &&
+             (!('fluency' in data) || (data.fluency is string && data.fluency.size() < 5000)) &&
+             (!('accuracy' in data) || (data.accuracy is string && data.accuracy.size() < 5000)) &&
+             (!('vocabulary' in data) || (data.vocabulary is string && data.vocabulary.size() < 5000)) &&
+             (!('strengths' in data) || (data.strengths is string && data.strengths.size() < 5000)) &&
+             (!('weaknesses' in data) || (data.weaknesses is string && data.weaknesses.size() < 5000)) &&
+             (!('improvementPlan' in data) || (data.improvementPlan is list && data.improvementPlan.size() < 20)) &&
+             (!('toolId' in data) || (data.toolId is string && data.toolId.size() < 64));
+    }
+
+    function isValidReadingTest(data) {
+      return data.keys().hasAll(['studentId', 'teacherId', 'accuracyScore', 'createdAt']) &&
+             data.studentId is string && data.teacherId is string &&
+             data.accuracyScore is number && data.accuracyScore >= 0 && data.accuracyScore <= 100 &&
+             data.createdAt is timestamp &&
+             (!('wpm' in data) || data.wpm is number) &&
+             (!('missedWords' in data) || data.missedWords is list) &&
+             (!('improvementPlan' in data) || data.improvementPlan is string) &&
+             (!('visibleToStudent' in data) || data.visibleToStudent is bool);
+    }
+
+    function isValidReadingPassage(data) {
+      return data.keys().hasAll(['title', 'text', 'createdBy', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 256 &&
+             data.text is string && data.text.size() > 0 && data.text.size() < 10000 &&
+             data.createdBy is string &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidStudentRecord(data) {
+      return data.keys().hasAll(['studentId', 'overallLevel', 'createdAt']) &&
+             data.studentId is string &&
+             data.overallLevel is string &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidSpeakingTopic(data) {
+      return data.keys().hasAll(['topic', 'questions', 'createdBy', 'createdAt']) &&
+             data.topic is string && data.topic.size() > 0 && data.topic.size() < 256 &&
+             data.questions is list && data.questions.size() < 50 &&
+             data.createdBy is string &&
+             data.createdAt is timestamp &&
+             (!('isActive' in data) || data.isActive is bool);
+    }
+
+    function isValidAssessmentLog(data) {
+      return data.keys().hasAll(['studentId', 'overallLevel', 'createdAt']) &&
+             data.studentId is string &&
+             data.overallLevel is string &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /student_assessment_log/{logId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacher());
+      allow create: if isAuthenticated() && isValidAssessmentLog(request.resource.data) && 
+                    (isOwner(request.resource.data.studentId) || isTeacher());
+      allow update, delete: if isAdmin();
+    }
+
+    match /speaking_topics/{topicId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidSpeakingTopic(request.resource.data) && 
+                    isTeacher();
+      allow update, delete: if isTeacher();
+    }
+
+    match /student_records/{recordId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacher());
+      allow create: if isAuthenticated() && isValidStudentRecord(request.resource.data) && 
+                    (isOwner(request.resource.data.studentId) || isTeacher());
+      allow update, delete: if isAdmin();
+    }
+
+    match /reading_passages/{passageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidReadingPassage(request.resource.data) && 
+                    isTeacher();
+      allow update, delete: if isTeacher();
+    }
+
+    match /reading_tests/{testId} {
+      // Students can read their own results if visible, teachers/admins can read all
+      allow read: if isAuthenticated() && (
+        (isOwner(resource.data.studentId) && resource.data.visibleToStudent == true) || 
+        isTeacher()
+      );
+      
+      // Teachers and admins can create
+      allow create: if isAuthenticated() && isValidReadingTest(request.resource.data) && 
+                    isTeacher();
+      
+      allow update, delete: if isTeacher();
+    }
+
+    match /test_results/{resultId} {
+      // Students can read their own results, admins can read all
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacher());
+      
+      // Only the student can create their own result, or an admin
+      allow create: if isAuthenticated() && isValidTestResult(request.resource.data) && 
+                    (isOwner(request.resource.data.studentId) || isTeacher());
+      
+      // Results are generally immutable once created, only admins can update or delete
+      allow update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isTeacher());
+      allow create: if isAuthenticated() && isOwner(userId) && (
+        request.resource.data.role == 'student' || 
+        (request.auth.token.email == "ibrahimmaani337@gmail.com" && request.auth.token.email_verified == true && request.resource.data.role == 'admin')
+      );
+      allow update: if isAdmin() || (isAuthenticated() && isOwner(userId) && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
+    }
+  }
+}
