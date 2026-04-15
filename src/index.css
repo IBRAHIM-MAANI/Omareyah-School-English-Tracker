@@ -1,1 +1,72 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-dashboard-bg: #110d2e;
+  --color-primary-purple: #8b5cf6;
+  --color-card-bg: rgba(30, 41, 59, 0.4);
+}
+
+@layer base {
+  :root {
+    --bg-dark: #110d2e;
+    --accent-purple: #8b5cf6;
+    --glass-bg: rgba(30, 41, 59, 0.4);
+  }
+
+  body {
+    @apply bg-[#110d2e] text-white;
+    background-image: 
+      radial-gradient(circle at top left, rgba(139, 92, 246, 0.15), transparent 40%),
+      radial-gradient(circle at bottom right, rgba(30, 66, 159, 0.1), transparent 40%);
+    min-height: 100vh;
+  }
+}
+
+.atmospheric-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(30, 66, 159, 0.3), transparent 40%),
+    radial-gradient(circle at 80% 50%, rgba(5, 122, 85, 0.2), transparent 40%);
+  filter: blur(100px);
+  opacity: 0.6;
+}
+
+.glass-panel {
+  @apply bg-slate-800/50 backdrop-blur-xl border border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.2)];
+  transition: all 0.3s ease;
+}
+
+.glass-panel:hover {
+  @apply border-purple-500/30 -translate-y-0.5;
+}
+
+.portal-card {
+  @apply bg-slate-800/40 backdrop-blur-xl rounded-[32px] p-10 text-center transition-all duration-300 cursor-pointer flex flex-col items-center gap-4 border border-white/5;
+}
+
+.portal-card:hover {
+  @apply -translate-y-1.5 border-white/20 shadow-2xl;
+}
+
+.teacher-border { border-color: rgba(59, 130, 246, 0.3); }
+.student-border { border-color: rgba(16, 185, 129, 0.3); }
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+}
+
+.accent-button {
+  @apply bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-purple-500/20 active:scale-95;
+}

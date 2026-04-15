@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, getDoc, getDocs, query, where, onSnapshot, getDocFromServer, Timestamp, orderBy } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider, OAuthProvider, FacebookAuthProvider, signInWithPopup, onAuthStateChanged, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, getDoc, getDocs, query, where, onSnapshot, getDocFromServer, Timestamp, orderBy, updateDoc, serverTimestamp, limit, startAfter } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -10,6 +10,11 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth();
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
+export const microsoftProvider = new OAuthProvider('microsoft.com');
+export const facebookProvider = new FacebookAuthProvider();
+export const appleProvider = new OAuthProvider('apple.com');
+
+export { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateDoc, sendPasswordResetEmail };
 
 export enum OperationType {
   CREATE = 'create',
@@ -74,4 +79,4 @@ async function testConnection() {
 }
 testConnection();
 
-export { collection, doc, setDoc, addDoc, deleteDoc, getDoc, getDocs, query, where, onSnapshot, Timestamp, orderBy, ref, uploadBytes, getDownloadURL };
+export { collection, doc, setDoc, addDoc, deleteDoc, getDoc, getDocs, query, where, onSnapshot, Timestamp, serverTimestamp, orderBy, limit, ref, uploadBytes, getDownloadURL, startAfter };

@@ -15,6 +15,7 @@ interface AssessmentLog {
   createdAt: Timestamp;
   toolId: string;
   fullReport: string;
+  examScore?: string;
   scores: {
     accuracy?: number;
     fluency?: number;
@@ -69,7 +70,7 @@ const ScoreDashboard: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth.currentUser]);
 
   const handleDownloadReport = (log: AssessmentLog) => {
     setSelectedLog(log);
@@ -88,13 +89,13 @@ const ScoreDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 pb-12 print:p-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
-        <div>
-          <h2 className="text-2xl font-bold">Score Dashboard</h2>
-          <p className="text-zinc-500 text-sm">Your linguistic competency breakdown and history.</p>
+    <div className="space-y-12 pb-12 print:p-0">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
+        <div className="space-y-2">
+          <h2 className="text-5xl font-black tracking-tighter text-white">Dashboard</h2>
+          <p className="text-zinc-500 font-bold text-sm uppercase tracking-widest">Linguistic Competency Analytics</p>
         </div>
-        <div className="bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+        <div className="bg-white/5 backdrop-blur-xl text-indigo-400 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-3 border border-white/10 shadow-xl">
           <Award className="w-4 h-4" />
           {logs.length} Assessments Logged
         </div>
@@ -105,38 +106,47 @@ const ScoreDashboard: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-6"
+          className="glass-panel rounded-[40px] p-10 space-y-8 relative overflow-hidden group"
         >
-          <div className="flex items-center gap-2 text-zinc-400">
-            <Award className="w-4 h-4 text-emerald-500" />
-            <span className="text-xs font-bold uppercase tracking-widest">Skill Radar (Latest Assessment)</span>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors" />
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20">
+                <Award className="w-4 h-4 text-indigo-400" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Skill Radar</span>
+            </div>
+            <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Latest Metrics</div>
           </div>
           
           {radarData.length > 0 ? (
             <div className="h-80 w-full flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                  <PolarGrid stroke="#27272a" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#71717a', fontSize: 12 }} />
+                  <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#71717a', fontSize: 10, fontWeight: 900, letterSpacing: '0.1em' }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                   <Radar
                     name="Skills"
                     dataKey="A"
-                    stroke="#10b981"
-                    fill="#10b981"
-                    fillOpacity={0.6}
+                    stroke="#818cf8"
+                    fill="#818cf8"
+                    fillOpacity={0.3}
                   />
                   <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '12px' }}
-                    itemStyle={{ fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}
+                    itemStyle={{ fontSize: '10px', fontWeight: 900, color: '#fff' }}
                   />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-80 flex flex-col items-center justify-center text-center text-zinc-500 space-y-4">
-              <Info className="w-12 h-12 opacity-20" />
-              <p>Complete an assessment to see your skill radar.</p>
+            <div className="h-80 flex flex-col items-center justify-center text-center text-zinc-600 space-y-4">
+              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center border border-white/5">
+                <Info className="w-8 h-8 opacity-20" />
+              </div>
+              <p className="text-sm font-bold">Complete an assessment to see your skill radar.</p>
             </div>
           )}
         </motion.div>
@@ -145,46 +155,51 @@ const ScoreDashboard: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-6"
+          className="glass-panel rounded-[40px] p-10 space-y-8 relative overflow-hidden group"
         >
-          <div className="flex items-center gap-2 text-zinc-400">
-            <Calendar className="w-4 h-4 text-blue-500" />
-            <span className="text-xs font-bold uppercase tracking-widest">Historical Progress</span>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-blue-500/10 transition-colors" />
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20">
+                <Calendar className="w-4 h-4 text-blue-400" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Historical Progress</span>
+            </div>
+            <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Activity Log</div>
           </div>
 
-          <div className="max-h-[320px] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+          <div className="max-h-[320px] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
             {logs.length === 0 ? (
-              <div className="text-center py-12 text-zinc-500">
-                <p>No assessment history found.</p>
+              <div className="text-center py-20 text-zinc-600">
+                <p className="font-bold text-sm">No assessment history found.</p>
               </div>
             ) : (
               logs.map((log) => (
-                <div 
+                <button 
                   key={log.id}
-                  className="flex items-center justify-between p-4 bg-zinc-800/50 border border-zinc-800 rounded-2xl hover:border-emerald-500/50 transition-all group"
+                  onClick={() => setSelectedLog(log)}
+                  className="w-full flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-3xl hover:bg-white/10 hover:border-white/20 transition-all group/item text-left"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-zinc-800 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover/item:scale-110 transition-transform">
                       <Calendar className="w-5 h-5 text-zinc-500" />
                     </div>
                     <div>
-                      <div className="font-bold text-sm">{log.createdAt.toDate().toLocaleDateString()}</div>
-                      <div className="text-xs text-zinc-500">{log.toolId}</div>
+                      <div className="font-black text-white text-sm">{log.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                      <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mt-0.5">{log.toolId}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-6">
                     <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">CEFR</div>
-                      <div className="text-lg font-black text-emerald-500">{log.overallLevel}</div>
+                      <div className="text-[8px] uppercase tracking-[0.2em] text-zinc-600 font-black">CEFR LEVEL</div>
+                      <div className="text-xl font-black text-indigo-400 leading-none mt-1">{log.overallLevel}</div>
                     </div>
-                    <button 
-                      onClick={() => setSelectedLog(log)}
-                      className="p-2 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-100 transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover/item:bg-white/10 transition-colors">
+                      <ChevronRight className="w-4 h-4 text-zinc-600 group-hover/item:text-white" />
+                    </div>
                   </div>
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -195,14 +210,14 @@ const ScoreDashboard: React.FC = () => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex items-start gap-4 print:hidden"
+        className="glass-panel rounded-3xl p-6 flex items-start gap-4 print:hidden"
       >
-        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center flex-shrink-0 border border-blue-500/20">
           <Info className="w-6 h-6 text-blue-500" />
         </div>
         <div>
-          <h3 className="font-bold text-zinc-100">Grading Ground Legend</h3>
-          <p className="text-zinc-400 text-sm leading-relaxed">
+          <h3 className="font-black text-zinc-100 uppercase tracking-widest text-sm">Grading Ground Legend</h3>
+          <p className="text-zinc-400 text-sm leading-relaxed font-medium mt-1">
             Your scores are calculated using the International CEFR standard, measuring your ability to communicate clearly, accurately, and naturally in real-world scenarios. We focus on four universal pillars: Accuracy, Fluency, Intonation, and Vocabulary.
           </p>
         </div>
@@ -220,11 +235,11 @@ const ScoreDashboard: React.FC = () => {
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-y-auto print:max-h-none print:w-full print:max-w-none print:border-none print:bg-white print:text-black"
+              className="glass-panel rounded-[40px] w-full max-w-2xl max-h-[80vh] overflow-y-auto custom-scrollbar print:max-h-none print:w-full print:max-w-none print:border-none print:bg-white print:text-black"
             >
-              <div className="p-6 border-b border-zinc-800 flex items-center justify-between sticky top-0 bg-zinc-900 z-10 print:hidden">
-                <h2 className="text-xl font-bold">Assessment Details</h2>
-                <button onClick={() => setSelectedLog(null)} className="p-2 hover:bg-zinc-800 rounded-lg transition-colors">
+              <div className="p-6 border-b border-white/10 flex items-center justify-between sticky top-0 bg-black/40 backdrop-blur-3xl z-10 print:hidden">
+                <h2 className="text-xl font-black tracking-tight">Assessment Details</h2>
+                <button onClick={() => setSelectedLog(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -232,12 +247,19 @@ const ScoreDashboard: React.FC = () => {
               <div className="p-8 space-y-8 print:p-12">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <div className="text-sm text-zinc-500 print:text-zinc-600">{selectedLog.createdAt.toDate().toLocaleString()}</div>
-                    <div className="text-2xl font-bold print:text-3xl">{selectedLog.toolId} Evaluation</div>
-                    <div className="text-sm text-zinc-400 print:text-zinc-600">Student: {auth.currentUser?.displayName || auth.currentUser?.email}</div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500 print:text-zinc-600">{selectedLog.createdAt.toDate().toLocaleString()}</div>
+                    <div className="text-3xl font-black tracking-tighter print:text-3xl">{selectedLog.toolId} Evaluation</div>
+                    <div className="text-xs font-bold text-zinc-400 print:text-zinc-600">Student: {auth.currentUser?.displayName || auth.currentUser?.email}</div>
                   </div>
-                  <div className="bg-emerald-500/20 text-emerald-500 px-6 py-3 rounded-2xl font-black text-3xl print:border print:border-emerald-500">
-                    {selectedLog.overallLevel}
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="bg-indigo-500/20 text-indigo-400 px-6 py-3 rounded-2xl font-black text-3xl border border-indigo-500/20 print:border print:border-emerald-500">
+                      {selectedLog.overallLevel}
+                    </div>
+                    {selectedLog.examScore && (
+                      <div className="bg-amber-500/20 text-amber-400 px-4 py-2 rounded-xl font-black text-sm border border-amber-500/20">
+                        Exam Score: {selectedLog.examScore}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -248,39 +270,39 @@ const ScoreDashboard: React.FC = () => {
                     { label: 'Intonation', val: selectedLog.scores?.intonation ?? selectedLog.scores?.pronunciation ?? 0 },
                     { label: 'Vocab', val: selectedLog.scores?.vocabulary ?? selectedLog.scores?.vocab ?? 0 },
                   ].map((s, i) => (
-                    <div key={i} className="bg-zinc-800/50 p-3 rounded-2xl border border-zinc-800 text-center print:bg-zinc-100 print:border-zinc-200">
-                      <div className="text-[10px] uppercase font-bold text-zinc-500 mb-1">{s.label}</div>
-                      <div className="text-lg font-bold text-emerald-500">{s.val}%</div>
+                    <div key={i} className="bg-white/5 p-3 rounded-2xl border border-white/5 text-center print:bg-zinc-100 print:border-zinc-200">
+                      <div className="text-[10px] uppercase font-black tracking-widest text-zinc-500 mb-1">{s.label}</div>
+                      <div className="text-lg font-black text-indigo-400">{s.val}%</div>
                     </div>
                   ))}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <h3 className="text-sm font-bold uppercase text-zinc-500 flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center gap-2">
+                      <CheckCircle className="w-3 h-3 text-emerald-500" />
                       Strengths
                     </h3>
-                    <p className="text-zinc-200 bg-zinc-800/50 p-4 rounded-2xl border border-zinc-800 print:bg-zinc-50 print:text-black print:border-zinc-200">{selectedLog.strengths}</p>
+                    <div className="text-sm font-medium text-zinc-200 bg-white/5 p-4 rounded-2xl border border-white/5 print:bg-zinc-50 print:text-black print:border-zinc-200">{selectedLog.strengths}</div>
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-sm font-bold uppercase text-zinc-500 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-500" />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center gap-2">
+                      <AlertCircle className="w-3 h-3 text-amber-500" />
                       Weaknesses
                     </h3>
-                    <p className="text-zinc-200 bg-zinc-800/50 p-4 rounded-2xl border border-zinc-800 print:bg-zinc-50 print:text-black print:border-zinc-200">{selectedLog.weaknesses}</p>
+                    <div className="text-sm font-medium text-zinc-200 bg-white/5 p-4 rounded-2xl border border-white/5 print:bg-zinc-50 print:text-black print:border-zinc-200">{selectedLog.weaknesses}</div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-sm font-bold uppercase text-zinc-500">Improvement Plan</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Improvement Plan</h3>
                   <div className="space-y-2">
                     {selectedLog.improvementPlan.map((step, i) => (
-                      <div key={i} className="flex items-start gap-3 bg-zinc-800/30 p-4 rounded-xl border border-zinc-800 print:bg-zinc-50 print:text-black print:border-zinc-200">
-                        <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold flex-shrink-0 print:bg-zinc-200">
+                      <div key={i} className="flex items-start gap-4 bg-white/5 p-4 rounded-2xl border border-white/5 print:bg-zinc-50 print:text-black print:border-zinc-200">
+                        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-black flex-shrink-0 print:bg-zinc-200">
                           {i + 1}
                         </div>
-                        <p className="text-zinc-300 text-sm print:text-black">{step.replace(/^\d+\.\s*/, '').trim()}</p>
+                        <p className="text-zinc-300 text-sm font-medium print:text-black">{step.replace(/^\d+\.\s*/, '').trim()}</p>
                       </div>
                     ))}
                   </div>
@@ -289,14 +311,14 @@ const ScoreDashboard: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-4 print:hidden">
                   <button 
                     onClick={() => handleDownloadReport(selectedLog)}
-                    className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-4 bg-white text-black hover:bg-zinc-200 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl"
                   >
                     <FileText className="w-5 h-5" />
                     Download for Family
                   </button>
                   <button 
                     onClick={() => setSelectedLog(null)}
-                    className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl transition-all"
+                    className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl transition-all border border-white/10"
                   >
                     Close
                   </button>

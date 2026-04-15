@@ -22,14 +22,14 @@ export class GeminiLiveService {
   private mixedStreamDestination: MediaStreamAudioDestinationNode | null = null;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
   }
 
   async connect(systemInstruction: string, callbacks: LiveSessionCallbacks, options?: { disableVAD?: boolean; voiceName?: string }) {
     this.recordedChunks = [];
     try {
       this.session = await this.ai.live.connect({
-        model: "gemini-2.5-flash-native-audio-preview-12-2025",
+        model: "gemini-3.1-flash-live-preview",
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -43,21 +43,24 @@ export class GeminiLiveService {
         callbacks: {
           onopen: () => {
             console.log("Live session opened");
-            this.startAudioCapture();
+            this.startAudioCapture(callbacks);
             callbacks.onOpen?.();
           },
           onmessage: async (message: LiveServerMessage) => {
-            if (message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
-              const base64Audio = message.serverContent.modelTurn.parts[0].inlineData.data;
-              this.handleAudioOutput(base64Audio);
+            const parts = message.serverContent?.modelTurn?.parts;
+            if (parts) {
+              for (const part of parts) {
+                if (part.inlineData?.data) {
+                  this.handleAudioOutput(part.inlineData.data);
+                }
+                if (part.text) {
+                  callbacks.onTranscription?.(part.text, true);
+                }
+              }
             }
 
             if (message.serverContent?.interrupted) {
               this.stopPlayback();
-            }
-
-            if (message.serverContent?.modelTurn?.parts?.[0]?.text) {
-              callbacks.onTranscription?.(message.serverContent.modelTurn.parts[0].text, true);
             }
 
             callbacks.onMessage?.(message);
@@ -79,9 +82,18 @@ export class GeminiLiveService {
     }
   }
 
-  private async startAudioCapture() {
-    try {
+  public async resumeAudioContext() {
+    if (!this.audioContext) {
       this.audioContext = new AudioContext({ sampleRate: 16000 });
+    }
+    if (this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
+    }
+  }
+
+  public async startAudioCapture(callbacks: LiveSessionCallbacks) {
+    try {
+      await this.resumeAudioContext();
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const source = this.audioContext.createMediaStreamSource(this.stream);
 
@@ -115,10 +127,11 @@ export class GeminiLiveService {
       };
     } catch (error) {
       console.error("Error capturing audio:", error);
+      callbacks.onError?.(error);
     }
   }
 
-  private stopAudioCapture() {
+  public stopAudioCapture() {
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
     }
@@ -129,9 +142,13 @@ export class GeminiLiveService {
     this.mixedStreamDestination = null;
   }
 
-  private handleAudioOutput(base64Data: string) {
+  private async handleAudioOutput(base64Data: string) {
     if (!this.audioContext) {
       this.audioContext = new AudioContext({ sampleRate: 24000 });
+    }
+    
+    if (this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
     }
     
     const pcmData = this.base64ToArrayBuffer(base64Data);

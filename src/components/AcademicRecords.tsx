@@ -18,6 +18,7 @@ interface StudentRecord {
   type?: 'speaking' | 'reading';
   passageTitle?: string;
   audioUrl?: string;
+  examScore?: string;
   scores?: {
     accuracy?: number;
     fluency?: number;
@@ -56,23 +57,41 @@ const AcademicRecords: React.FC<{
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      if (!auth.currentUser) return;
-      const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', auth.currentUser.email)));
-      if (!userDoc.empty) {
-        const role = userDoc.docs[0].data().role;
-        setUserRole(role);
-        if (role === 'teacher' || role === 'admin') {
-          const studentDocs = await getDocs(query(collection(db, 'users'), where('role', '==', 'student')));
-          const studentList = studentDocs.docs.map(doc => ({
-            id: doc.id,
-            email: doc.data().email,
-            displayName: doc.data().displayName || doc.data().email
-          }));
-          setStudents(studentList);
-          if (studentList.length > 0 && !initialStudentId) setSelectedStudentId(studentList[0].id);
-        } else if (!initialStudentId) {
-          setSelectedStudentId(auth.currentUser.uid);
+      if (!auth.currentUser || !auth.currentUser.email) return;
+      try {
+        const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', auth.currentUser.email)));
+        if (!userDoc.empty) {
+          const role = userDoc.docs[0].data().role;
+          setUserRole(role);
+          if (role === 'teacher' || role === 'admin') {
+            let studentQuery;
+            if (role === 'teacher') {
+              studentQuery = query(
+                collection(db, 'users'), 
+                where('role', '==', 'student'),
+                where('teacherId', '==', auth.currentUser.uid)
+              );
+            } else {
+              studentQuery = query(collection(db, 'users'), where('role', '==', 'student'));
+            }
+            
+            const studentDocs = await getDocs(studentQuery);
+            const studentList = studentDocs.docs.map(doc => {
+              const data = doc.data() as any;
+              return {
+                id: doc.id,
+                email: data.email,
+                displayName: data.displayName || data.email
+              };
+            });
+            setStudents(studentList);
+            if (studentList.length > 0 && !initialStudentId) setSelectedStudentId(studentList[0].id);
+          } else if (!initialStudentId) {
+            setSelectedStudentId(auth.currentUser.uid);
+          }
         }
+      } catch (err) {
+        console.error("Error fetching user role:", err);
       }
     };
     fetchUserRole();
@@ -143,6 +162,12 @@ const AcademicRecords: React.FC<{
                 {record.type === 'reading' ? 'Accuracy' : 'CEFR Level'}
               </span>
               <span className="text-4xl font-black text-emerald-500">{record.overallLevel}</span>
+              {record.examScore && (
+                <div className="mt-4 pt-4 border-t border-emerald-500/20 w-full">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 block mb-1">Exam Score</span>
+                  <span className="text-xl font-black text-emerald-400">{record.examScore}</span>
+                </div>
+              )}
             </div>
             
             <div className="md:col-span-2 space-y-4">

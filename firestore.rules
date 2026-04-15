@@ -38,13 +38,35 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "ibrahimmaani337@gmail.com" && request.auth.token.email_verified == true));
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+          (request.auth.token.email == "ibrahimmaani337@gmail.com") ||
+          (request.auth.token.email == "Ibrahemmatooq@gmail.com"));
     }
 
     function isTeacher() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' || isAdmin());
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher') || isAdmin());
+    }
+
+    function isVerifiedTeacher() {
+      return isAuthenticated() &&
+        (isAdmin() || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_pending == false
+        ));
+    }
+
+    function isTeacherForData(data) {
+      return isAdmin() || isVerifiedTeacher();
+    }
+
+    function isValidAudit(data) {
+      return data.keys().hasAll(['studentId', 'studentName', 'score', 'timestamp']) &&
+             data.studentId is string &&
+             data.studentName is string &&
+             data.score is number &&
+             data.timestamp is timestamp;
     }
 
     function isValidEmail(email) {
@@ -72,11 +94,25 @@ service cloud.firestore {
       return data.keys().hasAll(['studentId', 'teacherId', 'accuracyScore', 'createdAt']) &&
              data.studentId is string && data.teacherId is string &&
              data.accuracyScore is number && data.accuracyScore >= 0 && data.accuracyScore <= 100 &&
-             data.createdAt is timestamp &&
-             (!('wpm' in data) || data.wpm is number) &&
-             (!('missedWords' in data) || data.missedWords is list) &&
-             (!('improvementPlan' in data) || data.improvementPlan is string) &&
-             (!('visibleToStudent' in data) || data.visibleToStudent is bool);
+             data.createdAt is timestamp;
+    }
+
+    function isValidAzureRecording(data) {
+      return data.keys().hasAll(['studentId', 'studentName', 'testType', 'cefr', 'audioUrl', 'createdAt']) &&
+             data.studentId is string &&
+             data.studentName is string &&
+             data.testType is string &&
+             data.cefr is string &&
+             data.audioUrl is string &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['senderId', 'receiverId', 'text', 'timestamp']) &&
+             data.senderId is string &&
+             data.receiverId is string &&
+             data.text is string &&
+             data.timestamp is timestamp;
     }
 
     function isValidReadingPassage(data) {
@@ -110,72 +146,175 @@ service cloud.firestore {
              data.createdAt is timestamp;
     }
 
+    function isValidConfig(data) {
+      return data.keys().hasAll(['type', 'levels', 'updatedAt']) &&
+             data.type is string &&
+             data.levels is map &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidLog(data) {
+      return data.keys().hasAll(['action', 'action_type', 'timestamp']) &&
+             data.action is string &&
+             data.action_type in ["add_student", "edit_student", "delete_student", "speaking_test", "reading_test", "export_report", "login", "other"] &&
+             data.timestamp is timestamp &&
+             (!('teacher_id' in data) || data.teacher_id is string) &&
+             (!('teacher_name' in data) || data.teacher_name is string) &&
+             (!('teacher_email' in data) || data.teacher_email is string) &&
+             (!('student_id' in data) || data.student_id is string) &&
+             (!('student_name' in data) || data.student_name is string) &&
+             (!('metadata' in data) || data.metadata is string);
+    }
+
+    function isValidAssessment(data) {
+      return data.keys().hasAll(['student_id', 'status', 'createdAt']) &&
+             data.student_id is string &&
+             data.status is string &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidTestTemplate(data) {
+      return data.keys().hasAll(['title', 'questions', 'created_by', 'createdAt']) &&
+             data.title is string &&
+             data.questions is list &&
+             data.created_by is string &&
+             data.createdAt is timestamp;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
 
+    match /academic_records/{recordId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacherForData(resource.data));
+      allow create: if isAuthenticated() && (isOwner(request.resource.data.studentId) || isTeacherForData(request.resource.data));
+      allow update, delete: if isAdmin();
+    }
+
+    match /azure_recordings/{recordingId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacherForData(resource.data));
+      allow create: if isAuthenticated() && isValidAzureRecording(request.resource.data) && 
+                    (isOwner(request.resource.data.studentId) || isTeacherForData(request.resource.data));
+      allow update, delete: if isAdmin();
+    }
+
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.senderId) || isOwner(resource.data.receiverId));
+      allow create: if isAuthenticated() && isValidMessage(request.resource.data) && isOwner(request.resource.data.senderId);
+      allow update, delete: if false;
+    }
+
+    match /activity_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    match /audits/{auditId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isVerifiedTeacher());
+      allow create: if isAuthenticated() && isVerifiedTeacher() && isValidAudit(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && isValidLog(request.resource.data);
+      allow update, delete: if false;
+    }
+
     match /student_assessment_log/{logId} {
-      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacher());
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacherForData(resource.data));
       allow create: if isAuthenticated() && isValidAssessmentLog(request.resource.data) && 
-                    (isOwner(request.resource.data.studentId) || isTeacher());
+                    (isOwner(request.resource.data.studentId) || isTeacherForData(request.resource.data));
       allow update, delete: if isAdmin();
     }
 
     match /speaking_topics/{topicId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidSpeakingTopic(request.resource.data) && 
-                    isTeacher();
-      allow update, delete: if isTeacher();
+                    isVerifiedTeacher();
+      allow update, delete: if isVerifiedTeacher();
     }
 
     match /student_records/{recordId} {
-      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacher());
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacherForData(resource.data));
       allow create: if isAuthenticated() && isValidStudentRecord(request.resource.data) && 
-                    (isOwner(request.resource.data.studentId) || isTeacher());
+                    (isOwner(request.resource.data.studentId) || isTeacherForData(request.resource.data));
       allow update, delete: if isAdmin();
     }
 
     match /reading_passages/{passageId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidReadingPassage(request.resource.data) && 
-                    isTeacher();
-      allow update, delete: if isTeacher();
+                    isVerifiedTeacher();
+      allow update, delete: if isVerifiedTeacher();
     }
 
     match /reading_tests/{testId} {
       // Students can read their own results if visible, teachers/admins can read all
       allow read: if isAuthenticated() && (
         (isOwner(resource.data.studentId) && resource.data.visibleToStudent == true) || 
-        isTeacher()
+        isTeacherForData(resource.data)
       );
       
       // Teachers and admins can create
       allow create: if isAuthenticated() && isValidReadingTest(request.resource.data) && 
-                    isTeacher();
+                    isTeacherForData(request.resource.data);
       
-      allow update, delete: if isTeacher();
+      allow update, delete: if isTeacherForData(resource.data);
     }
 
     match /test_results/{resultId} {
       // Students can read their own results, admins can read all
-      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacher());
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isTeacherForData(resource.data));
       
       // Only the student can create their own result, or an admin
       allow create: if isAuthenticated() && isValidTestResult(request.resource.data) && 
-                    (isOwner(request.resource.data.studentId) || isTeacher());
+                    (isOwner(request.resource.data.studentId) || isTeacherForData(request.resource.data));
       
       // Results are generally immutable once created, only admins can update or delete
       allow update, delete: if isAdmin();
     }
 
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isTeacher());
-      allow create: if isAuthenticated() && isOwner(userId) && (
-        request.resource.data.role == 'student' || 
-        (request.auth.token.email == "ibrahimmaani337@gmail.com" && request.auth.token.email_verified == true && request.resource.data.role == 'admin')
+      allow read: if isAuthenticated() && (
+        isOwner(userId) || 
+        resource.data.email == request.auth.token.email || 
+        isAdmin() || 
+        (isVerifiedTeacher() && resource.data.role == 'student' && (
+          resource.data.teacherId == request.auth.uid ||
+          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.grade == resource.data.grade && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.section == resource.data.section)
+        ))
+      );
+      allow create: if isAuthenticated() && (
+        (isOwner(userId) && request.resource.data.role == 'student') || 
+        (isOwner(userId) && request.resource.data.role == 'teacher' && request.resource.data.is_pending == true) ||
+        (request.auth.token.email == "ibrahimmaani337@gmail.com" && request.resource.data.role == 'admin') ||
+        (request.auth.token.email == "Ibrahemmatooq@gmail.com" && request.resource.data.role == 'admin') ||
+        isAdmin()
       );
       allow update: if isAdmin() || (isAuthenticated() && isOwner(userId) && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin() || (isVerifiedTeacher() && resource.data.role == 'student' && resource.data.teacherId == request.auth.uid);
+    }
+
+    match /configs/{configId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() || isVerifiedTeacher();
       allow delete: if isAdmin();
+    }
+
+    match /assessments/{assessmentId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.student_id) || isTeacher());
+      allow create: if isAuthenticated() && isValidAssessment(request.resource.data);
+      allow update: if isAuthenticated() && isTeacher();
+      allow delete: if isAdmin();
+    }
+
+    match /test_templates/{templateId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isVerifiedTeacher() && isValidTestTemplate(request.resource.data);
+      allow update, delete: if isAuthenticated() && isVerifiedTeacher() && (resource.data.created_by == request.auth.token.email || isAdmin());
     }
   }
 }

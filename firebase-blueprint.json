@@ -57,7 +57,10 @@
         "toolId": {
           "type": "string",
           "description": "The ID of the tool used for assessment."
-        }
+        },
+        "grade": { "type": "string" },
+        "section": { "type": "string" },
+        "examScore": { "type": "string" }
       },
       "required": ["studentId", "overallLevel", "createdAt"]
     },
@@ -76,6 +79,8 @@
         "missedWords": { "type": "array", "items": { "type": "string" } },
         "improvementPlan": { "type": "string" },
         "visibleToStudent": { "type": "boolean" },
+        "grade": { "type": "string" },
+        "section": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["studentId", "teacherId", "accuracyScore", "createdAt"]
@@ -109,6 +114,9 @@
         "toolId": { "type": "string" },
         "type": { "type": "string" },
         "audioUrl": { "type": "string", "description": "URL to the recorded audio file." },
+        "grade": { "type": "string" },
+        "section": { "type": "string" },
+        "examScore": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["studentId", "cefrLevel", "createdAt"]
@@ -143,9 +151,111 @@
         "scores": { "type": "object" }
       },
       "required": ["studentId", "overallLevel", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the platform (Admin, Teacher, or Student).",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "teacher", "student"] },
+        "is_pending": { "type": "boolean", "description": "Whether a teacher is pending admin approval." },
+        "grade": { "type": "string", "description": "The grade assigned to a teacher or student." },
+        "section": { "type": "string", "description": "The section assigned to a teacher or student." },
+        "teacherId": { "type": "string", "description": "The ID of the teacher assigned to a student." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "createdAt"]
+    },
+    "Config": {
+      "title": "Configuration",
+      "description": "System-wide configuration settings.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "description": "The type of configuration (e.g., 'grading')." },
+        "levels": { "type": "object", "description": "A map of levels to their respective values." },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "levels", "updatedAt"]
+    },
+    "ActivityLog": {
+      "title": "Activity Log",
+      "description": "A log of system activities and teacher actions.",
+      "type": "object",
+      "properties": {
+        "teacher_id": { "type": "string" },
+        "teacher_name": { "type": "string" },
+        "teacher_email": { "type": "string" },
+        "action": { "type": "string", "description": "Description of the action taken" },
+        "action_type": { 
+          "type": "string", 
+          "enum": ["add_student", "edit_student", "delete_student", "speaking_test", "reading_test", "export_report", "login", "other"] 
+        },
+        "student_id": { "type": "string" },
+        "student_name": { "type": "string" },
+        "metadata": { "type": "string", "description": "Additional JSON metadata" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["action", "action_type", "timestamp"]
+    },
+    "TestTemplate": {
+      "title": "Test Template",
+      "description": "A template for a test created by a teacher with advanced question types.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "instructions": { "type": "string" },
+        "questions": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "id": { "type": "number" },
+              "type": { "type": "string", "enum": ["mcq", "tf", "open_ended"] },
+              "text": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "correctAnswer": { "type": "string" },
+              "imageUrl": { "type": "string" },
+              "points": { "type": "number" }
+            }
+          } 
+        },
+        "created_by": { "type": "string" },
+        "status": { "type": "string" },
+        "activation_time": { "type": "string", "format": "date-time" },
+        "is_live": { "type": "boolean" },
+        "duration": { "type": "number" },
+        "security_level": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "questions", "created_by", "createdAt"]
+    },
+    "Assessment": {
+      "title": "Assessment",
+      "description": "A student's completed assessment with forensic data.",
+      "type": "object",
+      "properties": {
+        "student_name": { "type": "string" },
+        "student_id": { "type": "string" },
+        "test_type": { "type": "string" },
+        "cefr_level": { "type": "string" },
+        "recording_url": { "type": "string" },
+        "overall_score": { "type": "number" },
+        "ai_suggested_score": { "type": "number" },
+        "teacher_feedback": { "type": "string" },
+        "status": { "type": "string" },
+        "integrity_log": { "type": "array", "items": { "type": "object" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["student_id", "status", "createdAt"]
     }
   },
   "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles."
+    },
     "test_results/{resultId}": {
       "schema": "TestResult",
       "description": "Collection of speaking assessment results."
@@ -169,6 +279,22 @@
     "student_assessment_log/{logId}": {
       "schema": "StudentAssessmentLog",
       "description": "Collection of student assessment logs."
+    },
+    "configs/{configId}": {
+      "schema": "Config",
+      "description": "Collection of system-wide configurations."
+    },
+    "logs/{logId}": {
+      "schema": "ActivityLog",
+      "description": "Collection of activity logs."
+    },
+    "test_templates/{templateId}": {
+      "schema": "TestTemplate",
+      "description": "Collection of test templates."
+    },
+    "assessments/{assessmentId}": {
+      "schema": "Assessment",
+      "description": "Collection of forensic assessments."
     }
   }
 }
